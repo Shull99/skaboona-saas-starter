@@ -2,16 +2,10 @@ import { getActiveSubscription } from "@/lib/payments/actions"
 import { auth } from "@/lib/auth"
 import { PageHeader } from "@/components/layout/page-header"
 import { headers } from "next/headers"
+import { redirect } from "next/navigation"
 import CancelSubButton from "./cancel-sub-button"
 
-import {
-    Zap,
-    RotateCcw,
-    CheckCircle,
-    Users,
-    CreditCard,
-    User
-} from "lucide-react"
+import { Zap, RotateCcw, CheckCircle, Users, CreditCard, User } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
     Card,
@@ -23,13 +17,15 @@ import {
 } from "@/components/ui/card"
 import PlanSelector from "./plan-selector"
 
-
 export const metadata = {
     title: "Billing & Subscription"
 }
 
 export default async function Plans() {
     const session = await auth.api.getSession({ headers: await headers() })
+    const orgId = (session?.session as any)?.activeOrganizationId as string | undefined
+    if (!orgId) redirect("/dashboard/org/create")
+
     const data = await getActiveSubscription()
     const activeSub = data.subscription
 
@@ -37,7 +33,7 @@ export default async function Plans() {
         <div className="space-y-6">
             <PageHeader
                 title="Billing & Subscription"
-                description="Manage your billing, subscription plans, and account details."
+                description="Manage your organization's billing, subscription plans, and account details."
             />
 
             <Tabs
@@ -69,9 +65,7 @@ export default async function Plans() {
                             <Card className="mx-auto max-w-3xl">
                                 <CardHeader>
                                     <CardTitle>Account Information</CardTitle>
-                                    <CardDescription>
-                                        Your current account details
-                                    </CardDescription>
+                                    <CardDescription>Your current account details</CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-muted-foreground text-sm">
@@ -88,20 +82,13 @@ export default async function Plans() {
                                     <CardHeader>
                                         <CardTitle className="flex items-center justify-between">
                                             <span>
-                                                {activeSub.plan
-                                                    .charAt(0)
-                                                    .toUpperCase() +
-                                                    activeSub.plan.slice(
-                                                        1
-                                                    )}{" "}
+                                                {activeSub.plan.charAt(0).toUpperCase() +
+                                                    activeSub.plan.slice(1)}{" "}
                                                 Plan
                                             </span>
                                         </CardTitle>
-                                        <CardDescription>
-                                            Your subscription details
-                                        </CardDescription>
+                                        <CardDescription>Your organization's subscription</CardDescription>
                                     </CardHeader>
-
                                     <CardContent>
                                         <div className="space-y-4">
                                             <div className="flex items-center justify-between rounded-lg border bg-card p-3">
@@ -113,49 +100,37 @@ export default async function Plans() {
                                                     {activeSub.status}
                                                 </span>
                                             </div>
-
                                             <div className="flex items-center justify-between rounded-lg border bg-card p-3">
                                                 <span className="flex items-center text-muted-foreground">
                                                     <RotateCcw className="mr-2 h-4 w-4" />
                                                     Auto-renew
                                                 </span>
                                                 <span className="font-semibold">
-                                                    {activeSub.cancelAtPeriodEnd
-                                                        ? "No"
-                                                        : "Yes"}
+                                                    {activeSub.cancelAtPeriodEnd ? "No" : "Yes"}
                                                 </span>
                                             </div>
-
                                             <div className="flex items-center justify-between rounded-lg border bg-card p-3">
                                                 <span className="flex items-center text-muted-foreground">
                                                     <CheckCircle className="mr-2 h-4 w-4" />
                                                     Tokens
                                                 </span>
                                                 <span className="font-semibold">
-                                                    {/* TODO: Extend Subscription type of better-auth to include this limits field. */}
-                                                    {(activeSub as any).limits
-                                                        ?.tokens || "N/A"}{" "}
-                                                    per month
+                                                    {(activeSub as any).limits?.tokens || "N/A"} per month
                                                 </span>
                                             </div>
-
                                             <div className="flex items-center justify-between rounded-lg border bg-card p-3">
                                                 <span className="flex items-center text-muted-foreground">
                                                     <Users className="mr-2 h-4 w-4" />
                                                     Seats
                                                 </span>
-                                                <span className="font-semibold">
-                                                    {activeSub.seats}
-                                                </span>
+                                                <span className="font-semibold">{activeSub.seats}</span>
                                             </div>
                                         </div>
                                     </CardContent>
-
                                     <CardFooter className="flex justify-end">
                                         {activeSub.cancelAtPeriodEnd ? (
                                             <p className="text-destructive text-xs">
-                                                Your subscription will be
-                                                cancelled on:{" "}
+                                                Your subscription will be cancelled on:{" "}
                                                 {activeSub.periodEnd?.toLocaleDateString()}
                                             </p>
                                         ) : (
@@ -166,19 +141,15 @@ export default async function Plans() {
                             ) : (
                                 <Card className="mx-auto max-w-3xl">
                                     <CardHeader>
-                                        <CardTitle>
-                                            No Active Subscription
-                                        </CardTitle>
+                                        <CardTitle>No Active Subscription</CardTitle>
                                         <CardDescription>
-                                            You don't have an active
-                                            subscription plan
+                                            Your organization doesn't have an active subscription
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent className="text-center">
                                         <p className="mb-4 text-muted-foreground">
                                             Choose a plan from the subscription tab.
                                         </p>
-                                        
                                     </CardContent>
                                 </Card>
                             )}
@@ -186,12 +157,11 @@ export default async function Plans() {
                     </TabsContent>
 
                     <TabsContent value="plans">
-                        <div className="mx-auto mb-6 max-w-3xl rounded-lg border bg-muted/50 p-4 ">
+                        <div className="mx-auto mb-6 max-w-3xl rounded-lg border bg-muted/50 p-4">
                             <p className="font-medium">This is a demo app.</p>
                             <p className="mt-1 text-muted-foreground">
-                                This is a demo app that uses Stripe test
-                                environment. You can find a list of test card
-                                numbers on the{" "}
+                                This is a demo app that uses Stripe test environment. You can find a list
+                                of test card numbers on the{" "}
                                 <a
                                     href="https://docs.stripe.com/testing#cards"
                                     target="_blank"
@@ -203,7 +173,7 @@ export default async function Plans() {
                                 .
                             </p>
                         </div>
-                        <PlanSelector activeSub={activeSub} session={session} />
+                        <PlanSelector activeSub={activeSub} orgId={orgId} />
                     </TabsContent>
                 </div>
             </Tabs>

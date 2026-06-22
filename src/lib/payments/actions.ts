@@ -1,12 +1,12 @@
 "use server"
 
-//Docs: https://www.better-auth.com/docs/plugins/stripe
 import { auth } from "@/lib/auth"
 import type { Subscription } from "@better-auth/stripe"
 import { headers } from "next/headers"
 import Stripe from "stripe"
+import { env } from "@/env"
 
-const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY!)
+const stripeClient = new Stripe(env.STRIPE_SECRET_KEY)
 
 export async function getActiveSubscription(): Promise<{
     status: boolean
@@ -15,35 +15,25 @@ export async function getActiveSubscription(): Promise<{
 }> {
     const session = await auth.api.getSession({ headers: await headers() })
     if (!session) {
-        return {
-            status: false,
-            message: "You need to be logged in.",
-            subscription: null
-        }
+        return { status: false, message: "You need to be logged in.", subscription: null }
     }
+
+    const orgId = (session.session as any).activeOrganizationId as string | undefined
 
     try {
         const activeSubs = await auth.api.listActiveSubscriptions({
-            headers: await headers()
+            headers: await headers(),
+            // Query by org ID so billing is org-scoped
+            ...(orgId ? { query: { referenceId: orgId } } : {})
         })
         const activeSub =
             activeSubs.length > 1
-                ? activeSubs.find(
-                      (sub) =>
-                          sub.status === "active" || sub.status === "trialing"
-                  )
+                ? activeSubs.find((sub) => sub.status === "active" || sub.status === "trialing")
                 : activeSubs[0]
-        return {
-            subscription: activeSub ?? null,
-            status: true
-        }
+        return { subscription: activeSub ?? null, status: true }
     } catch (error) {
-        console.log(error)
-        return {
-            status: false,
-            message: "Something went wrong.",
-            subscription: null
-        }
+        console.error("[getActiveSubscription]", error)
+        return { status: false, message: "Something went wrong.", subscription: null }
     }
 }
 
@@ -53,48 +43,28 @@ export async function updateExistingSubscription(
 ): Promise<{ status: boolean; message: string }> {
     const session = await auth.api.getSession({ headers: await headers() })
     if (!session) {
-        return {
-            status: false,
-            message: "You need to be logged in."
-        }
+        return { status: false, message: "You need to be logged in." }
     }
 
     if (!subId || !switchToPriceId) {
-        return {
-            status: false,
-            message: "Invalid parameters."
-        }
+        return { status: false, message: "Invalid parameters." }
     }
 
     try {
         const subscription = await stripeClient.subscriptions.retrieve(subId)
         if (!subscription.items.data.length) {
-            return {
-                status: false,
-                message: "Invalid subscription. No subscription items found!"
-            }
+            return { status: false, message: "Invalid subscription. No subscription items found!" }
         }
 
         await stripeClient.subscriptions.update(subId, {
-            items: [
-                {
-                    id: subscription.items.data[0].id,
-                    price: switchToPriceId
-                }
-            ],
+            items: [{ id: subscription.items.data[0].id, price: switchToPriceId }],
             cancel_at_period_end: false,
             proration_behavior: "create_prorations"
         })
 
-        return {
-            status: true,
-            message: "Subscription updated successfully!"
-        }
+        return { status: true, message: "Subscription updated successfully!" }
     } catch (error) {
-        console.log(error)
-        return {
-            status: false,
-            message: "Something went wrong while updating the subcription."
-        }
+        console.error("[updateExistingSubscription]", error)
+        return { status: false, message: "Something went wrong while updating the subscription." }
     }
 }
