@@ -17,41 +17,29 @@ import SubscriptionButton from "./subscription-button"
 
 interface PlanSelectorProps {
     activeSub: any
-    session: any
+    orgId: string
 }
 
-export default function PlanSelector({
-    activeSub,
-    session
-}: PlanSelectorProps) {
+export default function PlanSelector({ activeSub, orgId }: PlanSelectorProps) {
     const [selectedPlan, setSelectedPlan] = useState(
         activeSub?.plan
-            ? plans.find((p) => p.name === activeSub.plan)?.id.toString() ||
-                  plans[0].id.toString()
+            ? plans.find((p) => p.name === activeSub.plan)?.id.toString() || plans[0].id.toString()
             : plans[0].id.toString()
     )
     const id = useId()
 
-    const currentPlan = plans.find(
-        (plan) => plan.id.toString() === selectedPlan
-    )
+    const currentPlan = plans.find((plan) => plan.id.toString() === selectedPlan)
     const buttonText = activeSub ? "Switch to this plan" : "Subscribe"
 
     return (
         <Card className="mx-auto max-w-3xl">
             <CardHeader>
                 <CardTitle>Choose Your Plan</CardTitle>
-                <CardDescription>
-                    Select the plan that best fits your needs
-                </CardDescription>
+                <CardDescription>Select the plan that best fits your needs</CardDescription>
             </CardHeader>
 
             <CardContent className="space-y-6">
-                <RadioGroup
-                    className="gap-2"
-                    value={selectedPlan}
-                    onValueChange={setSelectedPlan}
-                >
+                <RadioGroup className="gap-2" value={selectedPlan} onValueChange={setSelectedPlan}>
                     {plans.map((plan) => (
                         <div
                             key={plan.id}
@@ -64,10 +52,7 @@ export default function PlanSelector({
                                 className="order-1 after:absolute after:inset-0"
                             />
                             <div className="grid grow gap-1">
-                                <Label
-                                    htmlFor={`${id}-${plan.id}`}
-                                    className="font-medium capitalize"
-                                >
+                                <Label htmlFor={`${id}-${plan.id}`} className="font-medium capitalize">
                                     {plan.name}
                                 </Label>
                                 <p
@@ -77,15 +62,11 @@ export default function PlanSelector({
                                     ${plan.price} per month
                                 </p>
                                 {plan.trialDays > 0 && (
-                                    <span className="text-xs">
-                                    {plan.trialDays}-day free trial
-                                    </span>
+                                    <span className="text-xs">{plan.trialDays}-day free trial</span>
                                 )}
                             </div>
                             {activeSub?.plan === plan.name && (
-                                <div className="font-medium text-green-500 text-sm">
-                                    Current Plan
-                                </div>
+                                <div className="font-medium text-green-500 text-sm">Current Plan</div>
                             )}
                         </div>
                     ))}
@@ -94,9 +75,7 @@ export default function PlanSelector({
                 {currentPlan && (
                     <div className="space-y-3">
                         <p>
-                            <strong className="font-medium text-sm">
-                                Features include:
-                            </strong>
+                            <strong className="font-medium text-sm">Features include:</strong>
                         </p>
                         <ul className="space-y-2 text-muted-foreground text-sm">
                             {currentPlan.features.map((feature, index) => (
@@ -135,6 +114,7 @@ export default function PlanSelector({
                             plan={currentPlan}
                             activeSub={activeSub}
                             subId={activeSub?.stripeSubscriptionId as string}
+                            orgId={orgId}
                         />
                     ) : null}
                 </div>

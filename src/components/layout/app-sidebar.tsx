@@ -6,7 +6,9 @@ import {
     RiToolsFill,
     RiSettingsLine,
     RiSpeedUpLine,
-    RiBankCardLine
+    RiBankCardLine,
+    RiFolderLine,
+    RiTeamLine
 } from "@remixicon/react"
 import Image from "next/image"
 import Link from "next/link"
@@ -32,18 +34,23 @@ const data = {
         {
             title: "General",
             items: [
-                {title: "Dashboard",url: "/dashboard",icon: RiSpeedUpLine},
-                {title: "Analytics",url: "/dashboard/analytics",icon: RiLineChartLine},
-                {title: "Integrations",url: "/dashboard/integrations",icon: RiToolsFill},
-                {title: "Settings",url: "/dashboard/settings",icon: RiSettingsLine},
-                {title: "Billing",url: "/dashboard/billing",icon: RiBankCardLine},
-                {title: "API",url: "/dashboard/api",icon: RiCodeSSlashLine},
+                { title: "Dashboard", url: "/dashboard", icon: RiSpeedUpLine },
+                { title: "Analytics", url: "/dashboard/analytics", icon: RiLineChartLine },
+                { title: "Projects", url: "/dashboard/projects", icon: RiFolderLine },
+                { title: "Integrations", url: "/dashboard/integrations", icon: RiToolsFill },
+                { title: "Settings", url: "/dashboard/settings", icon: RiSettingsLine },
+                { title: "Billing", url: "/dashboard/billing", icon: RiBankCardLine },
+                { title: "API", url: "/dashboard/api", icon: RiCodeSSlashLine }
+            ]
+        },
+        {
+            title: "Organization",
+            items: [
+                { title: "Team", url: "/dashboard/org", icon: RiTeamLine }
             ]
         }
     ]
 }
-
-
 
 function SidebarLogo() {
     return (
@@ -84,29 +91,29 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         </SidebarGroupLabel>
                         <SidebarGroupContent>
                             <SidebarMenu>
-                                {item.items.map((item) => {
-                                    const isActive = pathname === item.url
+                                {item.items.map((navItem) => {
+                                    const isActive = pathname === navItem.url
 
                                     return (
-                                        <SidebarMenuItem key={item.title}>
+                                        <SidebarMenuItem key={navItem.title}>
                                             <SidebarMenuButton
                                                 asChild
                                                 className="group/menu-button group-data-[collapsible=icon]:!px-[5px] h-9 gap-3 font-medium transition-all duration-300 ease-out [&>svg]:size-auto"
-                                                tooltip={item.title}
+                                                tooltip={navItem.title}
                                                 isActive={isActive}
                                             >
                                                 <Link
-                                                    href={item.url}
+                                                    href={navItem.url}
                                                     className="flex items-center gap-3"
                                                 >
-                                                    {item.icon && (
-                                                        <item.icon
+                                                    {navItem.icon && (
+                                                        <navItem.icon
                                                             className="text-muted-foreground/65 group-data-[active=true]/menu-button:text-primary"
                                                             size={22}
                                                             aria-hidden="true"
                                                         />
                                                     )}
-                                                    <span>{item.title}</span>
+                                                    <span>{navItem.title}</span>
                                                 </Link>
                                             </SidebarMenuButton>
                                         </SidebarMenuItem>

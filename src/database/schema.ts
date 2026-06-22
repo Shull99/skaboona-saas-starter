@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, integer } from "drizzle-orm/pg-core"
 
 export const users = pgTable("users", {
     id: text("id").primaryKey(),
@@ -11,15 +11,14 @@ export const users = pgTable("users", {
     avatar: text("avatar"),
     avatarUrl: text("avatar_url"),
     createdAt: timestamp("created_at")
-        .$defaultFn(() => /* @__PURE__ */ new Date())
+        .$defaultFn(() => new Date())
         .notNull(),
     updatedAt: timestamp("updated_at")
-        .$defaultFn(() => /* @__PURE__ */ new Date())
+        .$defaultFn(() => new Date())
         .notNull(),
+    // Kept for stripe plugin compatibility; stays null with org-scoped billing
     stripeCustomerId: text("stripe_customer_id")
-});
-
-
+})
 
 export const sessions = pgTable("sessions", {
     id: text("id").primaryKey(),
@@ -31,7 +30,9 @@ export const sessions = pgTable("sessions", {
     userAgent: text("user_agent"),
     userId: text("user_id")
         .notNull()
-        .references(() => users.id, { onDelete: "cascade" })
+        .references(() => users.id, { onDelete: "cascade" }),
+    // Added by the organization plugin
+    activeOrganizationId: text("active_organization_id")
 })
 
 export const accounts = pgTable("accounts", {
@@ -57,25 +58,75 @@ export const verifications = pgTable("verifications", {
     identifier: text("identifier").notNull(),
     value: text("value").notNull(),
     expiresAt: timestamp("expires_at").notNull(),
-    createdAt: timestamp("created_at").$defaultFn(
-        () => /* @__PURE__ */ new Date()
-    ),
-    updatedAt: timestamp("updated_at").$defaultFn(
-        () => /* @__PURE__ */ new Date()
-    )
+    createdAt: timestamp("created_at").$defaultFn(() => new Date()),
+    updatedAt: timestamp("updated_at").$defaultFn(() => new Date())
 })
 
 export const subscriptions = pgTable("subscriptions", {
-	id: text('id').primaryKey(),
-	plan: text('plan').notNull(),
-	referenceId: text('reference_id').notNull(),
-	stripeCustomerId: text('stripe_customer_id'),
-	stripeSubscriptionId: text('stripe_subscription_id'),
-	status: text('status').default("incomplete"),
-	periodStart: timestamp('period_start'),
+    id: text("id").primaryKey(),
+    plan: text("plan").notNull(),
+    // referenceId = organizationId for org-scoped billing
+    referenceId: text("reference_id").notNull(),
+    stripeCustomerId: text("stripe_customer_id"),
+    stripeSubscriptionId: text("stripe_subscription_id"),
+    status: text("status").default("incomplete"),
+    periodStart: timestamp("period_start"),
     periodEnd: timestamp("period_end"),
     cancelAtPeriodEnd: boolean("cancel_at_period_end"),
     seats: integer("seats"),
-    trialStart: timestamp('trial_start'),
-    trialEnd: timestamp('trial_end')
-});
+    trialStart: timestamp("trial_start"),
+    trialEnd: timestamp("trial_end")
+})
+
+// ─── Organization plugin tables ───────────────────────────────────────────────
+
+export const organizations = pgTable("organizations", {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull().unique(),
+    logo: text("logo"),
+    metadata: text("metadata"),
+    createdAt: timestamp("created_at").notNull(),
+    // Stripe customer for org-level B2B billing
+    stripeCustomerId: text("stripe_customer_id")
+})
+
+export const members = pgTable("members", {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+        .notNull()
+        .references(() => organizations.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+        .notNull()
+        .references(() => users.id, { onDelete: "cascade" }),
+    role: text("role").notNull(),
+    createdAt: timestamp("created_at").notNull()
+})
+
+export const invitations = pgTable("invitations", {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+        .notNull()
+        .references(() => organizations.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    role: text("role").notNull(),
+    status: text("status").notNull().default("pending"),
+    inviterId: text("inviter_id")
+        .notNull()
+        .references(() => users.id, { onDelete: "cascade" }),
+    expiresAt: timestamp("expires_at").notNull()
+})
+
+// ─── Reference tenant table ───────────────────────────────────────────────────
+// Every tenant-owned table must have: organization_id, RLS enabled, go through withTenant
+
+export const projects = pgTable("projects", {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+        .notNull()
+        .references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    createdAt: timestamp("created_at")
+        .$defaultFn(() => new Date())
+        .notNull()
+})

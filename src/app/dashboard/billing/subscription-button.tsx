@@ -1,24 +1,27 @@
 "use client"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import type { Plan } from "@/lib/payments/plans"
 import { authClient } from "@/lib/auth-client"
 import { updateExistingSubscription } from "@/lib/payments/actions"
-import { toast } from "sonner"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
 
 interface SubscriptionButtonProps {
     buttonText: string
     plan: Plan
     activeSub?: any
     subId?: string
+    orgId: string
 }
 
 export default function SubscriptionButton({
     buttonText,
     plan,
     activeSub,
-    subId
+    subId,
+    orgId
 }: SubscriptionButtonProps) {
     const router = useRouter()
     const [isPending, setIsPending] = useState(false)
@@ -28,39 +31,31 @@ export default function SubscriptionButton({
             setIsPending(true)
 
             if (activeSub && subId) {
-                // Update existing subscription
-                const loadingToast = toast.loading("Updating subscription...")
-                
+                const loadingToast = toast.loading("Updating subscription…")
                 const result = await updateExistingSubscription(subId, plan.priceId)
-                console.log({ result })
-
                 toast.dismiss(loadingToast)
 
                 if (result.status) {
-                    toast.success(
-                        result.message || "Subscription updated successfully"
-                    )
-                    setTimeout(() => {
-                        router.refresh()
-                    }, 3000)
+                    toast.success(result.message || "Subscription updated successfully")
+                    setTimeout(() => router.refresh(), 3000)
                 } else {
                     toast.error(result.message || "Failed to update subscription")
                 }
             } else {
-                // Create new subscription
+                // referenceId = orgId so Stripe subscription is charged to the org
                 const { error } = await authClient.subscription.upgrade({
                     plan: plan.name,
+                    referenceId: orgId,
                     successUrl: "/dashboard/billing",
                     cancelUrl: "/dashboard/billing"
                 })
-                
+
                 if (error) {
-                    console.log(error)
-                    toast.error("Failed to create subscription")
+                    console.error(error)
+                    toast.error("Failed to start subscription")
                 }
             }
-        } catch (err) {
-            console.log(err)
+        } catch {
             toast.error("An unexpected error occurred")
         } finally {
             setIsPending(false)
@@ -68,11 +63,8 @@ export default function SubscriptionButton({
     }
 
     return (
-        <Button
-            onClick={handleSubscription}
-            disabled={isPending}
-        >
-            {isPending ? "Processing..." : buttonText}
+        <Button onClick={handleSubscription} disabled={isPending}>
+            {isPending ? "Processing…" : buttonText}
         </Button>
     )
-} 
+}
